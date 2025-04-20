@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32-S3 Dual Terminal</title>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <style>
+        body { font-family: monospace; background: #1e1e1e; color: #00ff88; padding: 20px; }
+        .section { margin-bottom: 40px; }
+        .terminal { background: black; padding: 10px; height: 250px; overflow-y: scroll; white-space: pre-wrap; border: 1px solid #444; margin-top: 5px; }
+        .input { width: 100%; padding: 10px; background: #222; color: #0f0; font-family: monospace; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h2>ESP32-S3 Web Debugger</h2>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" id="fileInput" />
+        <button type="submit">Upload</button>
+    </form>
+    <button onclick="downloadDirect('/get-elf', 'Temp_sensor.elf')">⬇ Download ELF (from build)</button>
+    <button onclick="downloadDirect('/get-bin', 'Temp_sensor.bin')">⬇ Download BIN (from build)</button>
+
+    <div id="statusMessage" style="margin-top: 10px; color: #0f0;"></div>
+
+    <div class="section">
+        <h3>[ TELNET TERMINAL ]</h3>
+        <div id="telnet-terminal" class="terminal"></div>
+        <input id="telnet-input" class="input" placeholder="> Telnet command" onkeydown="handleTelnetKey(event)">
+    </div>
+
+    <div class="section">
+        <h3>[ GDB TERMINAL ]</h3>
+        <button onclick="startGDB()">▶️ Start GDB Debug</button>
+        <div id="gdb-terminal" class="terminal"></div>
+        <input id="gdb-input" class="input" placeholder="> GDB command (e.g., break app_main)" onkeydown="handleGDBKey(event)">
+    </div>
+
+    <script>
+        const socket = io();
+        const telnetTerm = document.getElementById("telnet-terminal");
+        const gdbTerm = document.getElementById("gdb-terminal");
+
+        socket.on("telnet_response", d => {
+            telnetTerm.textContent += d.output + "\n";
+            telnetTerm.scrollTop = telnetTerm.scrollHeight;
+        });
+
+        socket.on("gdb_output", d => {
+            gdbTerm.textContent += d.data;
+            gdbTerm.scrollTop = gdbTerm.scrollHeight;
+        });
+
+        function handleTelnetKey(e) {
+            if (e.key === "Enter") {
+                const cmd = e.target.value;
+                telnetTerm.textContent += "> " + cmd + "\n";
+                socket.emit("telnet_command", { command: cmd });
+                e.target.value = "";
+            }
+        }
+
+        function handleGDBKey(e) {
+            if (e.key === "Enter") {
+                const cmd = e.target.value;
+                gdbTerm.textContent += "> " + cmd + "\n";
+                socket.emit("gdb_command", { command: cmd });
+                e.target.value = "";
+            }
+        }
+
+        function startGDB() {
+            socket.emit("start_gdb");
+            gdbTerm.textContent += "[ Starting GDB... ]\n";
+        }
+
+        document.getElementById("uploadForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const file = document.getElementById("fileInput").files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+            fetch("/upload", { method: "POST", body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === "uploaded" || data.filename) {
+                        document.getElementById("statusMessage").textContent = `✅ Uploaded: ${data.filename}`;
+                    } else {
+                        document.getElementById("statusMessage").textContent = `❌ Upload failed.`;
+                    }
+                })
+                .catch(() => {
+                    document.getElementById("statusMessage").textContent = "❌ Upload failed.";
+                });
+        });
+
+        function downloadDirect(endpoint, filename) {
+            fetch(endpoint).then(response => {
+                if (response.ok) {
+                    return response.blob().then(blob => {
+                        const a = document.createElement('a');
+                        a.href = window.URL.createObjectURL(blob);
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        document.getElementById("statusMessage").textContent = `✅ Downloaded: ${filename}`;
+                    });
+                } else {
+                    document.getElementById("statusMessage").textContent = `❌ Download failed: ${filename}`;
+                }
+            }).catch(() => {
+                document.getElementById("statusMessage").textContent = `❌ Download error: ${filename}`;
+            });
+        }
+    </script>
+</body>
+</html>
