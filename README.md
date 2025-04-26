@@ -9,6 +9,11 @@ The project demonstrates a practical and modular architecture using Flask and So
 ![image](https://github.com/user-attachments/assets/c19cf01e-46fa-4d6b-8f23-9b3131cd5bd6)
 
 **Technology used**
+
+JavaScript : runs in the browser, makes websites interactive
+
+Python : runs on the server, handles logic, data, and control
+
 ![image](https://github.com/user-attachments/assets/30af272d-db62-4518-a8cd-f89d6e8dd6a4)
 
 **Here’s how Flask and JavaScript work together in this project:**
@@ -16,3 +21,11 @@ The project demonstrates a practical and modular architecture using Flask and So
 
 **Web Debugger Architecture**
 ![image](https://github.com/user-attachments/assets/4a70d9c4-b1f2-4d13-abf9-9bebc62d9e63)
+
+
+**Unique Innovation**
+
+- Web-based debugging via OpenOCD (Real time Debugging via GDB + Telnet)
+- No Complex local Toolchain required Browser only
+- VPN-backed secure remote access (Tailscale:secure, peer-to peer connection, simplified setup while ensuring encrypted access)
+- Location freedom
